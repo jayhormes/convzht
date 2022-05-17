@@ -2,7 +2,7 @@ from zhconv import convert
 from opencc import OpenCC
 
 import langdetect
-from langdetect import DetectorFactory, detect
+from langdetect import DetectorFactory, detect, detect_langs
 
 import re
 import langid
@@ -41,11 +41,15 @@ def ConvertZhsToZht_langid(target):
             return converted
         else:
             DetectorFactory.seed = 0
-            if detect(to_check) == "zh-cn":
-                cc = OpenCC('s2t')
-                converted = cc.convert(target)
-                return converted
-            else:
+
+            try:
+                if detect(to_check) == "zh-cn":
+                    cc = OpenCC('s2t')
+                    converted = cc.convert(target)
+                    return converted
+                else:
+                    return target
+            except langdetect.lang_detect_exception.LangDetectException:
                 return target
     else:
         #print("input is not string")
@@ -64,6 +68,7 @@ def FileTranslator(file, update_to_same_file):
     file_data = ""
     count_line = 0
     total_line = GetFileLine(file)
+    print('Translate %s ...'%file)
     with open(file, "r", encoding="utf-8") as f:
         for line in f:
             count_line += 1
@@ -86,7 +91,62 @@ def FileTranslator(file, update_to_same_file):
     print("\r", end="")
     print('Translate to %s Done !!'%new_file)
 
+def FileKeywordChecker(file):
+    file_data = ""
+    count_line = 0
+    total_line = GetFileLine(file)
+    print('Check %s ...'%file)
+    with open(file, "r", encoding="utf-8") as f:
+        file_data = file + ","
+        for line in f:
+            count_line += 1
+            file_data += Checker(line)
 
+            if total_line != 0:
+                process = int((count_line / total_line) * 100)
+                print("\r", end="")
+                print("Process: {}%: ".format(process), "▓" * (process // 2), end="")
+                sys.stdout.flush()
+        file_data = file_data + "\n"
+
+    record_file = "Keyword.csv"
+            
+    with open(record_file, "a", encoding="utf-8") as f:
+        f.write(file_data)
+    print("\r", end="")
+    print('Update %s okay'%record_file)
+
+def Checker(line):
+    keyword = ""
+    if not IsAscii(line):
+        substring = line.split("\"\'")
+        for partstring in substring:
+            if not IsAscii(partstring):
+                keyword += ConvertZhs(partstring)
+    return keyword
+
+def ConvertZhs(target):
+    if isinstance(target, str):
+        to_check = re.sub("[a-zA-Z0-9\n\./_<>:;(),\{\}\[\]]\s","",target)
+        to_check = to_check.replace("\r","")
+        to_check = to_check.replace("\n","")
+        #print("check string = %s>"%to_check)
+
+        langid.set_languages(['en','zh','ja'])
+        if langid.classify(to_check)[0] == "zh":
+            return to_check + ","
+        else:
+            DetectorFactory.seed = 0
+
+            try:
+                if detect(to_check) == "zh-cn":
+                    return to_check + ","
+                else:
+                    return ""
+            except langdetect.lang_detect_exception.LangDetectException:
+                return ""
+    else:
+        return ""
 
 def Convert(line):
     if not IsAscii(line):
@@ -115,11 +175,11 @@ def FileTraversal(root_path):
         #for directory in directories:
         #    print(directory)
         for file in files:
-            if file.find(".json") != -1 or file.find(".js") != -1:
+            if file.find(".json") != -1:
                 FileTranslator(file, True)
 
 def IsSpecialCommand(target):
-    special = ["CallSemen", "CallCommon", "CallCutin", "CallStand", "TOES"]
+    special = ["CallSemen", "CallCommon", "CallCutin", "CallStand", "TOES", "ParaAdd", "CommonEXP", "Callsem", "LocationFlag"]
     for check in special:
         if target.find(check) != -1:
             return True
@@ -139,5 +199,15 @@ def SubConvert(target):
             target = target.replace(partstring, converstring)
     return target
 
+def ScriptTraversal(root_path):
+    path = os.walk(root_path)
+    for root, directories, files in path:
+        #for directory in directories:
+        #    print(directory)
+        for file in files:
+            if file.find(".js") != -1:
+                FileKeywordChecker(file)
+
 if __name__ == '__main__':
     FileTraversal(".")
+    #ScriptTraversal(".")
