@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from zhconv import convert
 from opencc import OpenCC
 
@@ -35,7 +36,7 @@ def ConvertZhsToZht_langid(target):
 
         langid.set_languages(['en','zh','ja'])
         if langid.classify(to_check)[0] == "zh":
-            cc = OpenCC('s2t')
+            cc = OpenCC('s2tw')
             converted = cc.convert(target)
             #print(converted)
             return converted
@@ -44,7 +45,7 @@ def ConvertZhsToZht_langid(target):
 
             try:
                 if detect(to_check) == "zh-cn":
-                    cc = OpenCC('s2t')
+                    cc = OpenCC('s2tw')
                     converted = cc.convert(target)
                     return converted
                 else:
@@ -154,13 +155,14 @@ def Convert(line):
         for partstring in substring:
             if not IsAscii(partstring):
                 if not IsSpecialCommand(partstring):
-                    if not IsOptionCommand(partstring):
-                        converstring = ConvertZhsToZht_langid(partstring)
-                    else:
-                        converstring = SubConvert(partstring)
-                    
-                    if partstring != converstring:
-                        line = line.replace(partstring, converstring)
+                    if not IsEqualSpeciificCommand(partstring):
+                        if not IsOptionCommand(partstring):
+                            converstring = ConvertZhsToZht_langid(partstring)
+                        else:
+                            converstring = SubConvert(partstring)
+                        
+                        if partstring != converstring:
+                            line = line.replace(partstring, converstring)
     return line
 
 def IsAscii(s):
@@ -179,11 +181,18 @@ def FileTraversal(root_path):
                 FileTranslator(file, True)
 
 def IsSpecialCommand(target):
-    special = ["CallSemen", "CallCommon", "CallCutin", "CallStand", "TOES", "ParaAdd", "CommonEXP", "Callsem", "LocationFlag"]
+    special = ["CallSemen", "CallCommon", "CallCutin", "CallStand", "TOES", "ParaAdd", "CommonEXP", "Callsem", "LocationFlag", "変身衣装", "LocationID", "TE:", "DE:", "ERS_MAKE_TEMPLATE_RANDOM"]
     for check in special:
         if target.find(check) != -1:
             return True
     return False
+
+def IsEqualSpeciificCommand(target):
+    Speciific = ["乱交", "乱交導入", "乱交中", "前戯", "前戯乱交", "内装", "近未来外観", "近未来内装", "○都市全景", "○学園内装", "〇下水道/近未来", "○体育館", "〇学園図書館", "〇学園外観", "病院内装", "学園", "廃工場", "住宅地", "皆川家", "銭湯", "市街地", "駅前", "総合病院", "繁華街", "下水道", "封鎖市街", "異界化学園地下", "侵蝕病棟", "崩壊暗域", "市民公園", "初痴漢", "触手怪人", "体重計", "通学生徒", "父との会話", "脱衣所", "街灯01", "街灯02", "偽物対策会議", "堕落", "種蒔・体育館", "催眠装置・体育", "催眠装置", "催眠体育", "黒服潜入1", "売春乱暴", "売春礼儀", "噴乳触手", "催眠装置・異界化", "催眠触手", "捕獲触手", "触手椅子", "捕獲触手2", "呪装1", "淫欲上限アップ", "GR対策会議", "GR対策会議2", "GR中枢司令部", "触手", "回避", "回避判定", "回避不能", "回避・無効", "回避率", "下着"]
+    for check in Speciific:
+        if target == check:
+            return True
+    return False    
 
 def IsOptionCommand(target):
     if target.find("option:") != -1:
@@ -211,3 +220,5 @@ def ScriptTraversal(root_path):
 if __name__ == '__main__':
     FileTraversal(".")
     #ScriptTraversal(".")
+    #(Convert("脚"))
+ 
